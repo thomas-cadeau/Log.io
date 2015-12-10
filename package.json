@@ -19,6 +19,7 @@
     "winston": "~0.6.2",
     "coffee-script": "~1.4.0"
   },
+  "bundledDependencies":["backbone","underscore","jquery","jquery-browserify","socket.io","socket.io-client","express","winston","coffee-script"],
   "devDependencies": {
     "browserify": "~1.16.6",
     "less": "~1.3.3",
