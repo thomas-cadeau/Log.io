@@ -29,6 +29,14 @@ puis lancer un refresh puppet agent:
 
 Voir le fichier de configuration dans conf/harvester.conf pour exemple, le supprimer par la suite
 
+- Exemple de fichier SHUT: 
+
+ 
+        #!/bin/sh
+        PID_FILE=$HOME/logio.pid
+        kill $(cat $PID_FILE)
+
+
 ### Serveur principal
 
 - Exemple de fichier BOOT: 
@@ -40,11 +48,22 @@ Voir le fichier de configuration dans conf/harvester.conf pour exemple, le suppr
         LOG_DIR=$HOME/logio/logs
         PID_FILE=$HOME/logio.pid
         
+        function exit_safe {
+        	touch $LOCK_FILE
+        	exit 1
+        }
+        
+        if [ -f "$PID_FILE" ]; then
+        	#test if process already started
+        	ps -p $(cat $PID_FILE) && echo "processes already started, exiting BOOT";exit 0
+        fi
+        
         if [ ! -f "$LOCK_FILE" ]; then
-        	mkdir -p $LOG_DIR || (touch $LOCK_FILE;exit 1)
+        	mkdir -p $LOG_DIR || exit_safe
         	echo "export nodejs to PATH"
-        	export PATH=$PATH:/export/product/nodejs/0.12.2/usr/bin || (touch $LOCK_FILE;exit 1)
+        	export PATH=$PATH:/export/product/nodejs/0.12.2/usr/bin || exit_safe 
         	echo "export nodejs [done]"
+
 
 *permet de démarrer un serveur de monitoring de logs accessible par les clients web*
 
@@ -52,8 +71,9 @@ Voir le fichier de configuration dans conf/harvester.conf pour exemple, le suppr
         	$HOME/logio/bin/log.io-server > $LOG_DIR/server.log &
         	# get pid number
         	PID=`echo $!`
-        	echo $PID > $PID_FILE
-        	ps -p $PID || (touch $LOCK_FILE;exit 1)
+        	sleep 2 
+        	ps -p $PID || exit_safe
+                echo $PID > $PID_FILE
         	echo "server started"
         
         	sleep 5
@@ -63,15 +83,15 @@ Voir le fichier de configuration dans conf/harvester.conf pour exemple, le suppr
         	# starting harvesters
         	$HOME/logio/bin/log.io-harvester >> $LOG_DIR/harvester.log &
         	PID=`echo $!`
-        	echo $PID >> $PID_FILE
-        	ps -p $PID || (touch $LOCK_FILE;exit 1)
+        	sleep 2 
+        	ps -p $PID || exit_safe
+                echo $PID >> $PID_FILE
         	echo "watchers harvester started"
         
         	echo "pid file: $PID_FILE"
         else
         	echo "there was an issue, please have a look to the launchers and remove the lockboot file $LOCK_FILE"
         fi
-
 
 
 - Fichier de conf dans logio/conf/harvester-**nom_instance**.conf: 
@@ -104,11 +124,22 @@ Dans le cas de fichiers où les fichiers à monitorer sont sur plusieurs instanc
         LOG_DIR=$HOME/logio/logs
         PID_FILE=$HOME/logio.pid
         
+        function exit_safe {
+        	touch $LOCK_FILE
+        	exit 1
+        }
+        
+        if [ -f "$PID_FILE" ]; then
+        	#test if process already started
+        	ps -p $(cat $PID_FILE) && echo "processes already started, exiting BOOT";exit 0
+        fi
+        
         if [ ! -f "$LOCK_FILE" ]; then
-        	mkdir -p $LOG_DIR || (touch $LOCK_FILE;exit 1)
+        	mkdir -p $LOG_DIR || exit_safe
         	echo "export nodejs to PATH"
-        	export PATH=$PATH:/export/product/nodejs/0.12.2/usr/bin || (touch $LOCK_FILE;exit 1)
+        	export PATH=$PATH:/export/product/nodejs/0.12.2/usr/bin || exit_safe 
         	echo "export nodejs [done]"
+
 
 **pas besoin ici de déclarer un serveur de monitoring: on va simplement s'y connecter au travers de la conf des watchers**
 
@@ -117,8 +148,9 @@ Dans le cas de fichiers où les fichiers à monitorer sont sur plusieurs instanc
         	# starting harvesters
         	$HOME/logio/bin/log.io-harvester >> $LOG_DIR/harvester.log &
         	PID=`echo $!`
-        	echo $PID >> $PID_FILE
-        	ps -p $PID || (touch $LOCK_FILE;exit 1)
+        	sleep 2 
+        	ps -p $PID || exit_safe
+                echo $PID >> $PID_FILE
         	echo "watchers harvester started"
         
         	echo "pid file: $PID_FILE"
@@ -144,3 +176,9 @@ Dans le cas de fichiers où les fichiers à monitorer sont sur plusieurs instanc
             port: 54006
           }
         }
+
+
+### Cron
+
+    #every working day at 06:00
+    00 06 * * 1-5 $HOME/BOOT
