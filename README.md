@@ -25,6 +25,8 @@ puis lancer un refresh puppet agent:
     tar -xzf log.io-vsct.tar.gz
     mv package/ logio
 
+Url d'accès par défaut: http://main.host.server:54007/
+
 ## Configuration
 
 Voir le fichier de configuration dans conf/harvester.conf pour exemple, le supprimer par la suite
