@@ -1,86 +1,69 @@
 Log.io - Real-time log monitoring in your browser
 =================================================
 
-Powered by [node.js](http://nodejs.org) + [socket.io](http://socket.io)
+Doc d'origine: https://github.com/NarrativeScience/Log.io 
 
-## How does it work?
+## Pré-requis installations
+node
 
-*Harvesters* watch log files for changes, send new log messages to the *server* via TCP, which broadcasts to *web clients* via socket.io.
+## Installation
+wget "http://nexus/service/local/artifact/maven/content?g=org.log.io&a=log.io&v=RELEASE&c=vsct&r=thirdparty&e=tar.gz" -O log.io-vsct.tar.gz
+tar -xzf log.io-vsct.tar.gz
+mv package/ logio
 
-Log streams are defined by mapping file paths to a stream name in harvester configuration.
+## Configuration
 
-Users browse streams and nodes in the web UI, and activate (stream, node) pairs to view and search log messages in screen widgets.
+Voir le fichier de configuration dans conf/harvester.conf pour exemple.
 
-## Install Server & Harvester
+# Serveur principal
+- Exemple de fichier BOOT: 
 
-1) Install via npm
+    export PATH=$PATH:/export/product/nodejs/0.12.2/usr/bin
+    # permet de démarrer un serveur de monitoring de logs accessible par les clients web
+    $HOME/logio/bin/log.io-server &
+    # permet de démarrer un watcher de logs rattaché au serveur de monitoring
+    $HOME/logio/bin/log.io-harvester &
 
-    npm install -g log.io --user "ubuntu"
+- Fichier de conf dans logio/conf/harvester-**nom_instance**.conf: 
 
-2) Run server
 
-    log.io-server
+    exports.config = {
+      nodeName: "WAS-SERVER-INSTANCE",
+      logStreams: {
+        stream1: [
+    	"/appl/wasblabla/logs/logfile.txt"
+        ],
+      },
+      server: {
+        host: 'localhost',
+        port: 54006
+      }
+    }
 
-3) Configure harvester
 
-    nano ~/.log.io/harvester.conf
+# Serveur(s) secondaire(s)
 
-4) Run harvester
+Dans le cas de fichiers où les fichiers à monitorer sont sur plusieurs instances, il est important de raccrocher des watchers au serveur de monitoring.
 
-    log.io-harvester
+Exemple de fichier BOOT: 
 
-5) Browse to http://localhost:28778
+    export PATH=$PATH:/export/product/nodejs/0.12.2/usr/bin
+    # pas besoin ici de déclarer un serveur de monitoring: on va simplement s'y connecter au travers de la conf des watchers
+    # permet de démarrer un watcher de logs rattaché au serveur de monitoring
+    $HOME/logio/bin/log.io-harvester &
 
-## Server TCP Interface
+- Fichier de conf dans logio/conf/harvester-**nom_instance**.conf: 
 
-Harvesters connect to the server via TCP, and write properly formatted strings to the socket.  Third party harvesters can send messages to the server using the following commands:
 
-Send a log message
-
-    +log|my_stream|my_node|info|this is log message\r\n
-
-Register a new node
-
-    +node|my_node\r\n
-
-Register a new node, with stream associations
-
-    +node|my_node|my_stream1,my_stream2\r\n
-
-Remove a node
-
-    -node|my_node\r\n
-
-## Credits
-
-- Mike Smathers &lt;msmathers@narrativescience.com&gt; ([msmathers](http://github.com/msmathers))
-
-- Narrative Science http://narrativescience.com ([NarrativeScience](http://github.com/NarrativeScience))
-
-## Acknowledgements
-
-- Jeremy Ashkenas ([jashkenas](https://github.com/jashkenas))
-
-- Guillermo Rauch &lt;guillermo@learnboost.com&gt; ([Guille](http://github.com/guille))
-
-- Ryan Dahl &lt;ry at tiny clouds dot org&gt; ([ry](https://github.com/ry)) + Joyent http://www.joyent.com/ ([joyent](https://github.com/joyent/))
-
-- [turtlebender](http://github.com/turtlebender)
-
-- [jdrake](http://github.com/jdrake)
-
-## License 
-
-Copyright 2013 Narrative Science &lt;contrib@narrativescience.com&gt;
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+    exports.config = {
+      nodeName: "WAS-SERVER-INSTANCE",
+      logStreams: {
+        stream1: [
+    	"/appl/wasblabla/logs/logfile.txt"
+        ],
+      },
+      server: {
+        host: 'host_du_serveur_principal_de_monitoring',
+        port: 54006
+      }
+    }
