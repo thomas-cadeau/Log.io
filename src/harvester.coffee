@@ -58,11 +58,11 @@ class LogStream extends events.EventEmitter
         if event is 'change'
           # Capture file offset information for change event
           fs.stat path, (err, stat) =>
-            currSize = 0
+            curr = 0
             if stat
-              @_readNewLogs path, stat.size, currSize
-              currSize = stat.size
-            currSize
+              curr = stat.size
+            @_readNewLogs path, curr, currSize
+            currSize = curr
 
   _readNewLogs: (path, curr, prev) ->
     # Use file offset information to stream new log lines from file
