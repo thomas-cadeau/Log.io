@@ -34,11 +34,45 @@ Voir le fichier de configuration dans conf/harvester.conf pour exemple, le suppr
 - Exemple de fichier BOOT: 
 
 
-        export PATH=$PATH:/export/product/nodejs/0.12.2/usr/bin
-        # permet de démarrer un serveur de monitoring de logs accessible par les clients web
-        $HOME/logio/bin/log.io-server &
-        # permet de démarrer un watcher de logs rattaché au serveur de monitoring
-        $HOME/logio/bin/log.io-harvester &
+        #!/bin/sh
+        
+        LOCK_FILE=$HOME/logio.lockboot
+        LOG_DIR=$HOME/logio/logs
+        PID_FILE=$HOME/logio.pid
+        
+        if [ ! -f "$LOCK_FILE" ]; then
+        	mkdir -p $LOG_DIR || (touch $LOCK_FILE;exit 1)
+        	echo "export nodejs to PATH"
+        	export PATH=$PATH:/export/product/nodejs/0.12.2/usr/bin || (touch $LOCK_FILE;exit 1)
+        	echo "export nodejs [done]"
+
+*permet de démarrer un serveur de monitoring de logs accessible par les clients web*
+
+        	# starting server
+        	$HOME/logio/bin/log.io-server > $LOG_DIR/server.log &
+        	# get pid number
+        	PID=`echo $!`
+        	echo $PID > $PID_FILE
+        	ps -p $PID || (touch $LOCK_FILE;exit 1)
+        	echo "server started"
+        
+        	sleep 5
+
+*permet de démarrer un watcher de logs rattaché au serveur de monitoring*
+
+        	# starting harvesters
+        	$HOME/logio/bin/log.io-harvester >> $LOG_DIR/harvester.log &
+        	PID=`echo $!`
+        	echo $PID >> $PID_FILE
+        	ps -p $PID || (touch $LOCK_FILE;exit 1)
+        	echo "watchers harvester started"
+        
+        	echo "pid file: $PID_FILE"
+        else
+        	echo "there was an issue, please have a look to the launchers and remove the lockboot file $LOCK_FILE"
+        fi
+
+
 
 - Fichier de conf dans logio/conf/harvester-**nom_instance**.conf: 
 
@@ -64,10 +98,33 @@ Dans le cas de fichiers où les fichiers à monitorer sont sur plusieurs instanc
 - Exemple de fichier BOOT: 
 
 
-        export PATH=$PATH:/export/product/nodejs/0.12.2/usr/bin
-        # pas besoin ici de déclarer un serveur de monitoring: on va simplement s'y connecter au travers de la conf des watchers
-        # permet de démarrer un watcher de logs rattaché au serveur de monitoring
-        $HOME/logio/bin/log.io-harvester &
+        #!/bin/sh
+        
+        LOCK_FILE=$HOME/logio.lockboot
+        LOG_DIR=$HOME/logio/logs
+        PID_FILE=$HOME/logio.pid
+        
+        if [ ! -f "$LOCK_FILE" ]; then
+        	mkdir -p $LOG_DIR || (touch $LOCK_FILE;exit 1)
+        	echo "export nodejs to PATH"
+        	export PATH=$PATH:/export/product/nodejs/0.12.2/usr/bin || (touch $LOCK_FILE;exit 1)
+        	echo "export nodejs [done]"
+
+**pas besoin ici de déclarer un serveur de monitoring: on va simplement s'y connecter au travers de la conf des watchers**
+
+*permet de démarrer un watcher de logs rattaché au serveur de monitoring*
+
+        	# starting harvesters
+        	$HOME/logio/bin/log.io-harvester >> $LOG_DIR/harvester.log &
+        	PID=`echo $!`
+        	echo $PID >> $PID_FILE
+        	ps -p $PID || (touch $LOCK_FILE;exit 1)
+        	echo "watchers harvester started"
+        
+        	echo "pid file: $PID_FILE"
+        else
+        	echo "there was an issue, please have a look to the launchers and remove the lockboot file $LOCK_FILE"
+        fi
 
 
 - Fichier de conf dans logio/conf/harvester-**nom_instance**.conf: 
@@ -81,6 +138,8 @@ Dans le cas de fichiers où les fichiers à monitorer sont sur plusieurs instanc
             ],
           },
           server: {
+*nom du host sur lequel se connecter*
+
             host: 'host_du_serveur_principal_de_monitoring',
             port: 54006
           }
