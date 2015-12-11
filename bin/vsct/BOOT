@@ -1,0 +1,46 @@
+#!/bin/sh
+
+LOCK_FILE=$HOME/logio.lockboot
+LOG_DIR=$HOME/logio/logs
+PID_FILE=$HOME/logio.pid
+
+function exit_safe {
+	touch $LOCK_FILE
+	exit 1
+}
+
+if [ -f "$PID_FILE" ]; then
+	#test if process already started
+	ps -p $(cat $PID_FILE) && echo "processes already started, exiting BOOT";exit 0
+fi
+
+if [ ! -f "$LOCK_FILE" ]; then
+	mkdir -p $LOG_DIR || exit_safe
+	echo "export nodejs to PATH"
+	export PATH=$PATH:/export/product/nodejs/0.12.2/usr/bin || exit_safe 
+	echo "export nodejs [done]"
+
+	# starting server
+	$HOME/logio/bin/log.io-server > $LOG_DIR/server.log &
+	# get pid number
+	PID=`echo $!`
+	sleep 2 
+	ps -p $PID || exit_safe
+        echo $PID > $PID_FILE
+	echo "server started"
+
+	sleep 5
+
+	# starting harvesters
+	$HOME/logio/bin/log.io-harvester >> $LOG_DIR/harvester.log &
+	PID=`echo $!`
+	sleep 2 
+	ps -p $PID || exit_safe
+        echo $PID >> $PID_FILE
+	echo "watchers harvester started"
+
+	echo "pid file: $PID_FILE"
+else
+	echo "there was an issue, please have a look to the launchers and remove the lockboot file $LOCK_FILE"
+fi
+

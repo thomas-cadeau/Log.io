@@ -1,0 +1,5 @@
+#!/bin/sh
+
+PID_FILE=$HOME/logio.pid
+
+kill $(cat $PID_FILE)
